@@ -1,0 +1,30 @@
+name: fuel_prediction_app
+description: A Flutter app for predicting fuel consumption
+publish_to: 'none' # Remove this line if you plan to publish
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  http: ^1.1.0
+  fluttertoast: ^8.2.2
+  google_fonts: ^6.1.0
+
+  # For responsive layout (optional)
+  flutter_screenutil: ^5.9.0
+
+  cupertino_icons: ^1.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+
+  uses-material-design: true
+
