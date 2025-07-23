@@ -10,7 +10,7 @@ CORS(app)
 model = pickle.load(open("model_assets/trained_model_lr.sav", "rb"))
 scaler = pickle.load(open("model_assets/scaled_data.sav", "rb"))
 
-@app.route('/api/predict', methods=['POST'])
+@app.route('/predict', methods=['POST'])  # ✅ FIXED this line
 def api_predict():
     try:
         data = request.get_json()
@@ -44,7 +44,6 @@ def api_predict():
     except Exception as e:
         print("[ERROR] Prediction failed:", str(e))
         return jsonify({'error': 'Prediction failed'})
-
 
 
 if __name__ == '__main__':

@@ -33,6 +33,7 @@ class _FuelPredictionPageState extends State<FuelPredictionPage> {
   int? _co2;
 
   String _result = '';
+  bool _isLoading = false;
 
   final List<String> vehicleClasses = [
     'Two-seater', 'Minicompact', 'Compact', 'Subcompact', 'Mid-size', 'Full-size',
@@ -42,18 +43,24 @@ class _FuelPredictionPageState extends State<FuelPredictionPage> {
   ];
 
   final List<String> transmissionTypes = ['AV', 'AM', 'M', 'AS', 'A'];
-
   final List<String> fuelTypes = ['D', 'E', 'X', 'Z'];
 
   Future<void> _submitForm() async {
-    if (!_formKey.currentState!.validate() || _vehicleClass == null || _transmission == null || _fuelType == null) {
+    if (!_formKey.currentState!.validate() ||
+        _vehicleClass == null ||
+        _transmission == null ||
+        _fuelType == null) {
       Fluttertoast.showToast(msg: "Please fill all fields");
       return;
     }
 
     _formKey.currentState!.save();
+    setState(() {
+      _isLoading = true;
+      _result = '';
+    });
 
-    final url = Uri.parse('http://127.0.0.1:5000/api/predict'); // 🔁 Use your Flask IP when running on device
+    final url = Uri.parse('https://fuel-api-vybx.onrender.com/predict'); // ✅ LIVE API URL
 
     final body = {
       "vehicle": _vehicleClass,
@@ -65,21 +72,37 @@ class _FuelPredictionPageState extends State<FuelPredictionPage> {
     };
 
     try {
-      final response = await http.post(url,
-          headers: {"Content-Type": "application/json"},
-          body: jsonEncode(body)
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(body),
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        final result = data['result'] ?? 'No result';
+
+        String emoji = '⛽';
+        double? value = double.tryParse(result);
+        if (value != null) {
+          if (value < 4) emoji = '😢⛽';
+          else if (value < 7) emoji = '🚗';
+          else if (value < 10) emoji = '🚗🌿';
+          else emoji = '🌱✨';
+        }
+
         setState(() {
-          _result = data['result'] ?? 'No result';
+          _result = "$result km/L $emoji";
         });
       } else {
         Fluttertoast.showToast(msg: "Server error: ${response.statusCode}");
       }
     } catch (e) {
       Fluttertoast.showToast(msg: "API call failed: $e");
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -94,8 +117,9 @@ class _FuelPredictionPageState extends State<FuelPredictionPage> {
           child: Column(children: [
             DropdownButtonFormField<String>(
               value: _vehicleClass,
-              items: vehicleClasses.map((v) =>
-                  DropdownMenuItem(value: v, child: Text(v))).toList(),
+              items: vehicleClasses
+                  .map((v) => DropdownMenuItem(value: v, child: Text(v)))
+                  .toList(),
               onChanged: (val) => setState(() => _vehicleClass = val),
               decoration: InputDecoration(labelText: "Vehicle Class"),
               validator: (val) => val == null ? "Required" : null,
@@ -114,8 +138,9 @@ class _FuelPredictionPageState extends State<FuelPredictionPage> {
             ),
             DropdownButtonFormField<String>(
               value: _transmission,
-              items: transmissionTypes.map((t) =>
-                  DropdownMenuItem(value: t, child: Text(t))).toList(),
+              items: transmissionTypes
+                  .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+                  .toList(),
               onChanged: (val) => setState(() => _transmission = val),
               decoration: InputDecoration(labelText: "Transmission Type"),
               validator: (val) => val == null ? "Required" : null,
@@ -128,22 +153,25 @@ class _FuelPredictionPageState extends State<FuelPredictionPage> {
             ),
             DropdownButtonFormField<String>(
               value: _fuelType,
-              items: fuelTypes.map((f) =>
-                  DropdownMenuItem(value: f, child: Text(f))).toList(),
+              items: fuelTypes
+                  .map((f) => DropdownMenuItem(value: f, child: Text(f)))
+                  .toList(),
               onChanged: (val) => setState(() => _fuelType = val),
               decoration: InputDecoration(labelText: "Fuel Type"),
               validator: (val) => val == null ? "Required" : null,
             ),
             SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _submitForm,
-              child: Text("Predict"),
-            ),
+            _isLoading
+                ? CircularProgressIndicator()
+                : ElevatedButton(
+                    onPressed: _submitForm,
+                    child: Text("Predict"),
+                  ),
             SizedBox(height: 30),
             if (_result.isNotEmpty)
               Text(
                 _result,
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
           ]),
         ),
