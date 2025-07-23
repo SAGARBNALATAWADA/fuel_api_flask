@@ -10,30 +10,52 @@ CORS(app)
 model = pickle.load(open("model_assets/trained_model_lr.sav", "rb"))
 scaler = pickle.load(open("model_assets/scaled_data.sav", "rb"))
 
-@app.route('/predict', methods=['POST'])  # ✅ FIXED this line
+@app.route('/predict', methods=['POST'])
 def api_predict():
     try:
         data = request.get_json()
         print("[DEBUG] Received data:", data)
 
-        vehicle_types = {'Sedan': 0, 'SUV': 1, 'Hatchback': 2}
-        trans_types = {'Auto': 0, 'Manual': 1}
-        fuel_types = {'Petrol': 0, 'Diesel': 1, 'CNG': 2}
+        # Updated full mappings to match Flutter dropdowns
+        vehicle_types = {
+            'Compact': 0, 'SUV': 1, 'Sedan': 2, 'Hatchback': 3,
+            'Pickup': 4, 'Minivan': 5, 'Station Wagon': 6,
+            'Convertible': 7, 'Coupe': 8, 'Other': 9
+        }
 
+        trans_types = {
+            'AM': 0,  # Automated Manual
+            'AS': 1,  # Auto with Select Shift
+            'AV': 2,  # Continuously Variable
+            'M': 3,   # Manual
+            'A': 4    # Automatic
+        }
+
+        fuel_types = {
+            'X': 0,  # Regular gasoline
+            'Z': 1,  # Premium gasoline
+            'D': 2,  # Diesel
+            'E': 3,  # Ethanol (E85)
+        }
+
+        # Get encoded values or -1 if not found
         vehicle = vehicle_types.get(data['vehicle'], -1)
+        trans = trans_types.get(data['trans'], -1)
+        fuel = fuel_types.get(data['fuel'], -1)
+
         engine = float(data['engine'])
         cyl = int(data['cyl'])
-        trans = trans_types.get(data['trans'], -1)
         co2 = float(data['co2'])
-        fuel = fuel_types.get(data['fuel'], -1)
+
+        print("[DEBUG] Encoded values:", vehicle, trans, fuel)
 
         if -1 in [vehicle, trans, fuel]:
             return jsonify({'error': 'Invalid input values'}), 400
 
-        input_data = np.array([[vehicle, engine, cyl, trans, co2, fuel]])
-        print("[DEBUG] Input array before scaling:", input_data)
+        input_array = np.array([[vehicle, engine, cyl, trans, co2, fuel]])
+        print("[DEBUG] Input array before scaling:", input_array)
 
-        input_scaled = scaler.transform(input_data)
+        input_scaled = scaler.transform(input_array)
         print("[DEBUG] Scaled input:", input_scaled)
 
         prediction = model.predict(input_scaled)
@@ -42,9 +64,8 @@ def api_predict():
         return jsonify({'prediction': round(float(prediction[0]), 2)})
 
     except Exception as e:
-        print("[ERROR] Prediction failed:", str(e))
-        return jsonify({'error': 'Prediction failed'})
-
+        print("[ERROR]", e)
+        return jsonify({'error': str(e)}), 400
 
 if __name__ == '__main__':
     app.run(debug=True)
