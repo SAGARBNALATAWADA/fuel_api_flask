@@ -52,7 +52,10 @@ def api_predict():
         if -1 in [vehicle, trans, fuel]:
             return jsonify({'error': 'Invalid input values'}), 400
 
-        input_array = np.array([[vehicle, engine, cyl, trans, co2, fuel]])
+        # Add 3 placeholder values to match scaler's expected 9 features
+        # Replace 2020, 0, 0 with realistic values if known
+        input_array = np.array([[vehicle, engine, cyl, trans, co2, fuel, 2020, 0, 0]])
+
         print("[DEBUG] Input array before scaling:", input_array)
 
         input_scaled = scaler.transform(input_array)
